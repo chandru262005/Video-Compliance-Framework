@@ -4,7 +4,7 @@ This is **Phase 1** of the AdGuard AI Video Compliance System. It takes a raw vi
 
 ---
 
-## Dependencies to Install
+## Dependencies to Installquickstart.bat
 
 ### 1. Python (3.8 or higher)
 Make sure Python is installed on your machine. You can check by running:
