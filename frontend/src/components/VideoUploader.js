@@ -20,26 +20,33 @@ function VideoUploader({
     wordLevel: false,
   });
   const [dragOver, setDragOver] = useState(false);
+  const [validationError, setValidationError] = useState(null);
 
-  const handleFileSelect = (file) => {
+  const validateFile = (file) => {
     const extension = '.' + file.name.split('.').pop().toLowerCase();
 
     if (!SUPPORTED_FORMATS.includes(extension)) {
-      onProcessingError({
-        message: `Unsupported format. Please use: ${SUPPORTED_FORMATS.join(', ')}`,
-      });
-      return;
+      const error = `Unsupported format: ${extension}. Supported: ${SUPPORTED_FORMATS.join(', ')}`;
+      setValidationError(error);
+      onProcessingError({ message: error, code: 'INVALID_FORMAT' });
+      return false;
     }
 
     if (file.size > 5 * 1024 * 1024 * 1024) {
-      // 5GB limit
-      onProcessingError({
-        message: 'File size exceeds 5GB limit',
-      });
-      return;
+      const error = `File size (${formatFileSize(file.size)}) exceeds 5GB limit`;
+      setValidationError(error);
+      onProcessingError({ message: error, code: 'FILE_TOO_LARGE' });
+      return false;
     }
 
-    setSelectedFile(file);
+    setValidationError(null);
+    return true;
+  };
+
+  const handleFileSelect = (file) => {
+    if (validateFile(file)) {
+      setSelectedFile(file);
+    }
   };
 
   const handleDrop = (e) => {
@@ -69,20 +76,9 @@ function VideoUploader({
     }));
   };
 
-  const getModelSpeedInfo = (size) => {
-    const info = {
-      tiny: '⚡ Ultra-fast (~5-10s per minute)',
-      base: '🚀 Fast (~10-20s per minute)',
-      small: '⏱️ Medium (~20-30s per minute)',
-      medium: '⏳ Slower (~40-60s per minute)',
-      'large-v3': '🐢 Very Slow (~60-120s per minute)',
-    };
-    return info[size] || '';
-  };
-
   const handleProcess = async () => {
     if (!selectedFile) {
-      onProcessingError({ message: 'Please select a video file' });
+      onProcessingError({ message: 'Please select a video file', code: 'NO_FILE' });
       return;
     }
 
@@ -110,38 +106,48 @@ function VideoUploader({
             );
             onProcessingProgress('Uploading video file...', Math.min(percentCompleted, 30));
           },
+          timeout: 30000,
         }
       );
 
-      onProcessingProgress('Processing video...', 40);
+      onProcessingProgress('Processing video (this may take a while)...', 40);
 
       // Poll for processing completion
       let processingDone = false;
       let jobId = response.data.jobId || response.data.id;
       let attempts = 0;
-      const maxAttempts = 300; // 5 minutes with 1-second intervals
+      const maxAttempts = 600; // 10 minutes with 1-second intervals
 
       while (!processingDone && attempts < maxAttempts) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         try {
           const statusResponse = await axios.get(
-            `${API_BASE_URL}/api/job-status/${jobId}`
+            `${API_BASE_URL}/api/job-status/${jobId}`,
+            { timeout: 10000 }
           );
 
           const status = statusResponse.data;
+          
           if (status.status === 'completed') {
             processingDone = true;
             onProcessingProgress('Processing complete!', 100);
             onProcessingComplete(status.data);
           } else if (status.status === 'error') {
-            throw new Error(status.message || 'Processing failed');
-          } else if (status.progress) {
-            onProcessingProgress(status.message || 'Processing...', 40 + status.progress * 0.5);
+            throw new Error(status.error || status.message || 'Processing failed');
+          } else {
+            // Update progress based on server message and progress
+            const progressValue = status.progress || 40;
+            const displayProgress = Math.min(progressValue + 40, 95);
+            onProcessingProgress(status.message || 'Processing...', displayProgress);
           }
         } catch (error) {
           if (error.response?.status === 404) {
             // Job not found yet, continue polling
+            onProcessingProgress('Processing started...', 45);
+          } else if (error.code === 'ECONNABORTED') {
+            // Timeout, just continue polling
+            onProcessingProgress('Still processing...', 45);
           } else {
             throw error;
           }
@@ -151,12 +157,15 @@ function VideoUploader({
       }
 
       if (!processingDone) {
-        throw new Error('Processing timeout - please try again');
+        throw new Error('Processing timeout - the job took too long. Please try again with a shorter video or smaller model.');
       }
     } catch (error) {
       console.error('Error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'An unexpected error occurred';
+      const errorCode = error.response?.data?.code;
       onProcessingError({
-        message: error.response?.data?.message || error.message || 'An error occurred',
+        message: errorMessage,
+        code: errorCode,
       });
     }
   };
@@ -171,15 +180,21 @@ function VideoUploader({
 
   return (
     <div className="video-uploader">
+      {validationError && (
+        <div className="validation-error">
+          ⚠️ {validationError}
+        </div>
+      )}
+
       <div
-        className={`upload-area ${dragOver ? 'dragover' : ''}`}
+        className={`upload-area ${dragOver ? 'dragover' : ''} ${isProcessing ? 'disabled' : ''}`}
         onDrop={handleDrop}
         onDragOver={(e) => {
           e.preventDefault();
-          setDragOver(true);
+          if (!isProcessing) setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
-        onClick={handleClick}
+        onClick={!isProcessing ? handleClick : undefined}
       >
         <input
           ref={fileInputRef}
@@ -190,18 +205,18 @@ function VideoUploader({
           disabled={isProcessing}
         />
 
-        <div className="upload-icon">📹</div>
+        <div className="upload-icon">▲</div>
         <div className="upload-text">
-          <h3>Drag & drop your video</h3>
-          <p>or click to browse</p>
+          <h3>Drag and drop your video here</h3>
+          <p>or click to browse files</p>
         </div>
 
         {selectedFile ? (
           <div className="selected-file">
-            <h4>✓ Selected: {selectedFile.name}</h4>
+            <h4>Selected: {selectedFile.name}</h4>
             <div className="file-info">
               <span>Size: {formatFileSize(selectedFile.size)}</span>
-              <span>Type: {selectedFile.type}</span>
+              <span>Type: {selectedFile.type || selectedFile.name.split('.').pop()}</span>
             </div>
           </div>
         ) : (
@@ -212,7 +227,7 @@ function VideoUploader({
       </div>
 
       <div className="settings">
-        <h4>⚙️ Processing Settings</h4>
+        <h4>Processing Settings</h4>
         <div className="setting-group">
           <div className="setting-input">
             <label>Sample FPS (frames per second)</label>
@@ -224,7 +239,9 @@ function VideoUploader({
               value={settings.sampleFps}
               onChange={(e) => handleSettingChange('sampleFps', parseFloat(e.target.value))}
               disabled={isProcessing}
+              title="How many frames to extract per second"
             />
+            <small>Range: 0.5 - 30</small>
           </div>
           <div className="setting-input">
             <label>Transcription Model Size</label>
@@ -232,30 +249,31 @@ function VideoUploader({
               value={settings.modelSize}
               onChange={(e) => handleSettingChange('modelSize', e.target.value)}
               disabled={isProcessing}
+              title="Larger models are more accurate but slower"
             >
-              <option value="tiny">Tiny - Ultra-fast (~5-10s/min)</option>
-              <option value="base">Base - Fast (~10-20s/min, Better accuracy)</option>
-              <option value="small">Small - Medium (~20-30s/min)</option>
-              <option value="medium">Medium - Slower (~40-60s/min)</option>
-              <option value="large-v3">Large - Very Slow (~60-120s/min, Best accuracy)</option>
+              <option value="tiny">Tiny - Fastest (5-10s/min)</option>
+              <option value="base">Base - Fast (10-20s/min)</option>
+              <option value="small">Small - Medium (20-30s/min)</option>
+              <option value="medium">Medium - Slower (40-60s/min)</option>
+              <option value="large-v3">Large - Most accurate (60-120s/min)</option>
             </select>
-            <div style={{ fontSize: '12px', color: '#999', marginTop: '6px' }}>
-              💡 Times shown are per minute of audio. With 16GB+ RAM and GPU, speeds are 2-3x faster.
-            </div>
+            <small>Times are per minute of audio. With GPU, 2-3x faster.</small>
           </div>
         </div>
 
         <div className="setting-group">
-          <div className="setting-input">
+          <div className="setting-input checkbox">
             <label>
               <input
                 type="checkbox"
                 checked={settings.wordLevel}
                 onChange={(e) => handleSettingChange('wordLevel', e.target.checked)}
                 disabled={isProcessing}
+                title="Include word-level timestamps in transcription"
               />
               {' '}Word-level timestamps
             </label>
+            <small>More detailed but slower transcription</small>
           </div>
         </div>
       </div>
@@ -265,9 +283,20 @@ function VideoUploader({
           className="button button-primary"
           onClick={handleProcess}
           disabled={!selectedFile || isProcessing}
+          title={!selectedFile ? 'Select a video file first' : 'Start processing'}
         >
-          🚀 Process Video
+          {isProcessing ? 'Processing...' : 'Process Video'}
         </button>
+      </div>
+
+      <div className="info-box">
+        <h5>Tips</h5>
+        <ul>
+          <li>Use "Tiny" model for quick testing on smaller videos</li>
+          <li>Use "Base" or "Small" for balanced speed/accuracy</li>
+          <li>Processing time depends on video length and model size</li>
+          <li>Larger videos may take 10-30+ minutes to process</li>
+        </ul>
       </div>
     </div>
   );

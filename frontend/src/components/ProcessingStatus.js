@@ -9,8 +9,17 @@ const STEPS = [
   'Generating results',
 ];
 
-function ProcessingStatus({ progress, currentStep, error }) {
+function ProcessingStatus({ progress, currentStep, error, errorCode }) {
   const [checkpoints, setCheckpoints] = useState([]);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [startTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [startTime]);
 
   useEffect(() => {
     const newCheckpoints = STEPS.map((step, index) => {
@@ -30,17 +39,51 @@ function ProcessingStatus({ progress, currentStep, error }) {
     setCheckpoints(newCheckpoints);
   }, [progress, currentStep]);
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const getErrorAdvice = (code) => {
+    const advice = {
+      'NO_FILE': 'Please select a video file first',
+      'INVALID_FORMAT': 'Please use one of the supported formats: MP4, MOV, MKV, AVI, or WebM',
+      'FILE_TOO_LARGE': 'Your file exceeds the 5GB limit. Try compressing or splitting the video',
+      'PROCESSING_ERROR': 'An error occurred during processing. Check the backend logs for details',
+      'INVALID_FORMAT_ERROR': 'The file format is not supported or the file is corrupted',
+    };
+    return advice[code] || 'Please try again or contact support if the problem persists';
+  };
+
   if (error) {
     return (
       <div className="processing-status">
-        <div className="status-card">
-          <div className="status-header">
-            <span className="error-icon">❌</span>
-            Error Processing Video
+        <div className="status-card error-card">
+          <div className="status-header error-header">
+            <span className="error-icon">!</span>
+            <span>Processing Failed</span>
           </div>
           <div className="error-message">
-            <span className="error-icon">⚠️</span>
-            <span>{error}</span>
+            <div className="error-title">{error}</div>
+            {errorCode && (
+              <div className="error-code">
+                Error Code: <code>{errorCode}</code>
+              </div>
+            )}
+            <div className="error-advice">
+              {getErrorAdvice(errorCode)}
+            </div>
+          </div>
+          <div className="error-suggestions">
+            <h4>What you can try:</h4>
+            <ul>
+              <li>Check that your internet connection is stable</li>
+              <li>Verify the video file is not corrupted</li>
+              <li>Try with a smaller video file</li>
+              <li>Use the "Tiny" model for faster processing</li>
+              <li>Check the browser console for more details (F12)</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -52,7 +95,10 @@ function ProcessingStatus({ progress, currentStep, error }) {
       <div className="status-card">
         <div className="status-header">
           <div className="spinner"></div>
-          {currentStep || 'Processing...'}
+          <div className="status-text">
+            <div className="current-step">{currentStep || 'Processing...'}</div>
+            <div className="elapsed-time">{formatTime(elapsedTime)}</div>
+          </div>
         </div>
 
         <div className="status-checkpoints">
@@ -60,9 +106,10 @@ function ProcessingStatus({ progress, currentStep, error }) {
             <div key={index} className="status-checkpoint">
               <div className={`checkpoint-icon ${checkpoint.status}`}>
                 {checkpoint.status === 'completed' && '✓'}
-                {checkpoint.status === 'current' && '●'}
+                {checkpoint.status === 'current' && <div className="pulse"></div>}
+                {checkpoint.status === 'pending' && '○'}
               </div>
-              <span>{checkpoint.step}</span>
+              <span className={checkpoint.status}>{checkpoint.step}</span>
             </div>
           ))}
         </div>
@@ -76,14 +123,15 @@ function ProcessingStatus({ progress, currentStep, error }) {
           </div>
           <div className="progress-text">
             <span>Processing</span>
-            <span>{Math.round(progress)}%</span>
+            <span className="progress-percentage">{Math.round(progress)}%</span>
           </div>
         </div>
       </div>
 
-      <p style={{ textAlign: 'center', marginTop: '20px', color: '#999', fontSize: '14px' }}>
-        This may take a few minutes depending on video length and selected model size...
-      </p>
+      <div className="processing-info">
+        <p>This may take a few minutes depending on video length and selected model size...</p>
+        <p>Tip: Keep this window open. Do not refresh the page.</p>
+      </div>
     </div>
   );
 }
