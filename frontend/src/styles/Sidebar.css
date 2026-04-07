@@ -1,0 +1,119 @@
+/* Sidebar Navigation Styles */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1001;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 240px;
+  height: 100vh;
+  background: #161616;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #262626;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-brand {
+  padding: 20px;
+  border-bottom: 1px solid #262626;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-logo {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #0f62fe 0%, #0043ce 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  font-size: 14px;
+  letter-spacing: -0.5px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  color: #a8a8a8;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  font-size: 14px;
+}
+
+.nav-item:hover {
+  background: #262626;
+  color: #e0e0e0;
+}
+
+.nav-item.active {
+  background: #0f62fe;
+  color: white;
+  border-left-color: #0f62fe;
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #262626;
+  display: flex;
+  justify-content: center;
+}
+
+.help-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: none;
+  border: 1px solid #525252;
+  color: #a8a8a8;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.help-btn:hover {
+  background: #262626;
+  color: #fff;
+  border-color: #a8a8a8;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}

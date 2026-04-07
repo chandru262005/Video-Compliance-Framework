@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import './ProcessingStatus.css';
 
 const STEPS = [
-  'Uploading video file',
-  'Extracting frames',
-  'Extracting audio',
+  'Extracting frames and audio',
   'Transcribing audio',
-  'Generating results',
+  'Performing OCR on frames',
+  'Detecting logos',
+  'Checking compliance rules',
+  'Preparing frames',
+  'Generating report',
 ];
 
 function ProcessingStatus({ progress, currentStep, error, errorCode }) {

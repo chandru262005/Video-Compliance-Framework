@@ -72,6 +72,18 @@ function ResultsDisplay({ results, onReset }) {
     document.body.removeChild(element);
   };
 
+  const downloadComplianceReport = (format = 'json') => {
+    const jobId = results.jobId || 'unknown';
+    const url = `${API_BASE_URL}/api/download-report/${jobId}?format=${format}`;
+    const a = document.createElement('a');
+    a.href = url;
+    const filename = `compliance_report.${format === 'html' ? 'html' : format === 'csv' ? 'csv' : 'json'}`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   const getFrameUrl = (frame) => {
     // If preview is a base64 data URL, use it directly
     if (frame.preview && frame.preview.startsWith('data:')) {
@@ -114,6 +126,13 @@ function ResultsDisplay({ results, onReset }) {
           title="Preview extracted frames"
         >
           Frames ({results.frames?.length || 0})
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'compliance' ? 'active' : ''}`}
+          onClick={() => setActiveTab('compliance')}
+          title="Compliance and analysis report"
+        >
+          Compliance Report
         </button>
         <button
           className={`tab-button ${activeTab === 'downloads' ? 'active' : ''}`}
@@ -234,6 +253,127 @@ function ResultsDisplay({ results, onReset }) {
                 <p>Please check if the video file is valid and try again.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'compliance' && (
+          <div>
+            <div className="compliance-report">
+              {results.compliance_report ? (
+                <div className="report-container">
+                  <div className="report-header">
+                    <h3>Compliance Analysis Report</h3>
+                    <div className={`status-badge ${results.compliance_report.overall_status.toLowerCase()}`}>
+                      {results.compliance_report.overall_status}
+                    </div>
+                  </div>
+
+                  <div className="report-download-options">
+                    <button 
+                      className="download-report-btn json-btn"
+                      onClick={() => downloadComplianceReport('json')}
+                      title="Download report as JSON"
+                    >
+                      📄 JSON
+                    </button>
+                    <button 
+                      className="download-report-btn csv-btn"
+                      onClick={() => downloadComplianceReport('csv')}
+                      title="Download report as CSV"
+                    >
+                      📊 CSV
+                    </button>
+                    <button 
+                      className="download-report-btn html-btn"
+                      onClick={() => downloadComplianceReport('html')}
+                      title="Download report as HTML"
+                    >
+                      🌐 HTML
+                    </button>
+                  </div>
+
+                  <div className="score-display">
+                    <div className="score-circle">
+                      <span className="score-value">{results.compliance_report.overall_score}</span>
+                      <span className="score-label">/100</span>
+                    </div>
+                  </div>
+
+                  <div className="report-sections">
+                    <div className="report-section">
+                      <h4>Video Analysis</h4>
+                      <div className="report-content">
+                        <p>Duration: {results.compliance_report.video_analysis?.duration?.toFixed(2)}s</p>
+                        <p>Frames: {results.compliance_report.video_analysis?.frame_count}</p>
+                        <p>Sample Rate: {results.compliance_report.video_analysis?.fps} fps</p>
+                      </div>
+                    </div>
+
+                    <div className="report-section">
+                      <h4>Text Analysis (OCR)</h4>
+                      <div className="report-content">
+                        <p>{results.compliance_report.text_analysis?.summary}</p>
+                        <p>Frames Analyzed: {results.compliance_report.text_analysis?.detected_frames}</p>
+                        {results.compliance_report.text_analysis?.samples?.length > 0 && (
+                          <div className="samples">
+                            <strong>Detected Text Samples:</strong>
+                            {results.compliance_report.text_analysis.samples.map((sample, idx) => (
+                              <p key={idx} className="sample-text">
+                                Frame {sample.frame_id}: "{sample.text}"
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="report-section">
+                      <h4>Logo Detection</h4>
+                      <div className="report-content">
+                        <p>{results.compliance_report.logo_analysis?.summary}</p>
+                        <p>Total Logos Detected: {results.compliance_report.logo_analysis?.logos_detected}</p>
+                      </div>
+                    </div>
+
+                    <div className="report-section">
+                      <h4>Transcript Compliance</h4>
+                      <div className="report-content">
+                        <p>Status: {results.compliance_report.compliance?.transcript_validation}</p>
+                        <p>Compliance Score: {results.compliance_report.compliance?.score}/100</p>
+                        {results.compliance_report.compliance?.issues?.length > 0 && (
+                          <div className="issues">
+                            <strong>Issues Found:</strong>
+                            <ul>
+                              {results.compliance_report.compliance.issues.map((issue, idx) => (
+                                <li key={idx} className="issue">{issue}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {results.compliance_report.compliance?.warnings?.length > 0 && (
+                          <div className="warnings">
+                            <strong>Warnings:</strong>
+                            <ul>
+                              {results.compliance_report.compliance.warnings.map((warning, idx) => (
+                                <li key={idx} className="warning">{warning}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="report-footer">
+                    <p>Generated: {new Date(results.compliance_report.timestamp).toLocaleString()}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="no-data">
+                  <p>No compliance report available</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

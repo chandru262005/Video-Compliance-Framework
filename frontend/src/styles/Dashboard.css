@@ -1,0 +1,160 @@
+/* Dashboard Grid Styles */
+.dashboard {
+  margin-top: 56px;
+  margin-left: 240px;
+  padding: 40px 20px;
+  background: #0d0d0d;
+  min-height: calc(100vh - 56px);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Feature Cards */
+.feature-card {
+  background: #262626;
+  border: 1px solid #393939;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0f62fe 0%, #0043ce 100%);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  background: #303030;
+  border-color: #525252;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.feature-card:hover::before {
+  transform: scaleX(1);
+}
+
+.feature-card.feature-blue::before {
+  background: linear-gradient(90deg, #0f62fe 0%, #0043ce 100%);
+}
+
+.feature-card.feature-green::before {
+  background: linear-gradient(90deg, #24a148 0%, #12552e 100%);
+}
+
+.feature-card.feature-purple::before {
+  background: linear-gradient(90deg, #8e3fbe 0%, #5f1e8a 100%);
+}
+
+.feature-card.feature-teal::before {
+  background: linear-gradient(90deg, #0e6ba8 0%, #004a7a 100%);
+}
+
+.feature-card.feature-orange::before {
+  background: linear-gradient(90deg, #f1a025 0%, #c97e1c 100%);
+}
+
+.feature-card.feature-red::before {
+  background: linear-gradient(90deg, #da1e28 0%, #a81c1c 100%);
+}
+
+.card-header {
+  margin-bottom: 16px;
+}
+
+.card-icon {
+  font-size: 32px;
+  display: inline-block;
+}
+
+.card-content {
+  flex: 1;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.3px;
+}
+
+.card-description {
+  font-size: 14px;
+  color: #a8a8a8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.card-footer {
+  display: flex;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: 1px solid #0f62fe;
+  border-radius: 4px;
+  background: transparent;
+  color: #0f62fe;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.2px;
+}
+
+.btn-primary {
+  background: #0f62fe;
+  color: white;
+  border-color: #0f62fe;
+}
+
+.btn-primary:hover {
+  background: #0043ce;
+  border-color: #0043ce;
+  box-shadow: 0 4px 12px rgba(15, 98, 254, 0.3);
+}
+
+.btn-primary:active {
+  background: #0039a6;
+  border-color: #0039a6;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .dashboard {
+    margin-left: 0;
+    padding: 20px 16px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .feature-card {
+    padding: 20px;
+  }
+}

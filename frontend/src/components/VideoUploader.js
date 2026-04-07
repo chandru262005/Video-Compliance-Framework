@@ -3,7 +3,7 @@ import axios from 'axios';
 import './VideoUploader.css';
 
 const SUPPORTED_FORMATS = ['.mp4', '.mov', '.mkv', '.avi', '.webm'];
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function VideoUploader({
   onUploadStart,
@@ -110,7 +110,7 @@ function VideoUploader({
         }
       );
 
-      onProcessingProgress('Processing video (this may take a while)...', 40);
+      onProcessingProgress('Processing video (this may take a while)...', 5);
 
       // Poll for processing completion
       let processingDone = false;
@@ -136,18 +136,17 @@ function VideoUploader({
           } else if (status.status === 'error') {
             throw new Error(status.error || status.message || 'Processing failed');
           } else {
-            // Update progress based on server message and progress
-            const progressValue = status.progress || 40;
-            const displayProgress = Math.min(progressValue + 40, 95);
-            onProcessingProgress(status.message || 'Processing...', displayProgress);
+            // Use server progress directly (already 0-100)
+            const progressValue = status.progress || 50;
+            onProcessingProgress(status.message || 'Processing...', progressValue);
           }
         } catch (error) {
           if (error.response?.status === 404) {
             // Job not found yet, continue polling
-            onProcessingProgress('Processing started...', 45);
+            onProcessingProgress('Processing started...', 10);
           } else if (error.code === 'ECONNABORTED') {
             // Timeout, just continue polling
-            onProcessingProgress('Still processing...', 45);
+            onProcessingProgress('Still processing...', 50);
           } else {
             throw error;
           }
